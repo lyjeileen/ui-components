@@ -11,4 +11,6 @@ export default defineConfig({
       webpackConfig,
     },
   },
+  viewportWidth: 375,
+  viewportHeight: 667,
 })

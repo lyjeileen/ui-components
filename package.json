@@ -101,8 +101,11 @@
   "scripts": {
     "build": "webpack --config webpack.prod.config.js",
     "setup-dev-env": "husky install",
-    "test": "LANG='en-US' TZ='America/Vancouver' cypress run --component",
-    "test:interactive": "LANG='en-US' TZ='America/Vancouver' cypress open",
+    "test:desktop": "LANG='en-US' TZ='America/Vancouver' cypress run --component --spec 'src/components/**/*.cy.tsx' --config viewportWidth=1280,viewportHeight=720",
+    "test:mobile": "LANG='en-US' TZ='America/Vancouver' cypress run --component",
+    "test": "npm run test:mobile && npm run test:desktop",
+    "test:interactive:desktop": "LANG='en-US' TZ='America/Vancouver' cypress open --config viewportWidth=1280,viewportHeight=720",
+    "test:interactive:mobile": "LANG='en-US' TZ='America/Vancouver' cypress open",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

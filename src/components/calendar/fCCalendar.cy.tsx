@@ -1,3 +1,4 @@
+import { isMobile } from '../../../cypress/support/helper'
 import FCCalendar from './fCCalendar'
 
 describe('ScheduleCalendar Component', () => {
@@ -34,10 +35,6 @@ describe('ScheduleCalendar Component', () => {
     },
   ]
   beforeEach(() => {
-    const viewportWidth = 1800
-    const viewportHeight = 1400
-
-    cy.viewport(viewportWidth, viewportHeight)
     cy.mount(<FCCalendar events={mockEvents} />)
   })
 
@@ -49,11 +46,22 @@ describe('ScheduleCalendar Component', () => {
   const initialWeek = 'Feb 4 – 10, 2024'
   const initialMonth = 'Feb 2024'
   it('can show the title and events properly', () => {
-    cy.contains(initialMonth).should('be.visible')
-    cy.get(eventTitle).first().contains('Aquarium').should('be.visible')
-    cy.get(eventTime).first().contains('10:00 AM').should('be.visible')
-    cy.get(eventTitle).last().contains('Casa Loma').should('be.visible')
-    cy.get(eventTime).last().contains('02:00 PM').should('be.visible')
+    if (isMobile()) {
+      cy.contains(initialDate).should('be.visible')
+      cy.get(eventTitle).first().contains('Aquarium').should('be.visible')
+      cy.get(eventTime).first().contains('10:00 AM').should('be.visible')
+      cy.get(eventTitle).last().contains('Lunch').should('be.visible')
+      cy.get(eventTime)
+        .last()
+        .should('contain', '12:00 PM')
+        .and('contain', '02:00 PM')
+    } else {
+      cy.contains(initialMonth).should('be.visible')
+      cy.get(eventTitle).first().contains('Aquarium').should('be.visible')
+      cy.get(eventTime).first().contains('10:00 AM').should('be.visible')
+      cy.get(eventTitle).last().contains('Casa Loma').should('be.visible')
+      cy.get(eventTime).last().contains('02:00 PM').should('be.visible')
+    }
   })
 
   it('can toggle to show week view and day view', () => {
@@ -64,6 +72,9 @@ describe('ScheduleCalendar Component', () => {
   })
 
   it('allows the user to navigate to the next and previous month', () => {
+    if (isMobile()) {
+      cy.get('button').contains('month').click()
+    }
     cy.get(prevButton).click()
     cy.contains('Jan 2024').should('be.visible')
     cy.get(nextButton).click()

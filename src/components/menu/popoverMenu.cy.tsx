@@ -4,6 +4,7 @@ import ClearIcon from '@mui/icons-material/Clear'
 import DeviceThermostatIcon from '@mui/icons-material/DeviceThermostat'
 import React from 'react'
 
+import { isMobile } from '../../../cypress/support/helper'
 import PopoverMenu from './popoverMenu'
 
 describe('PopOverMenu', () => {
@@ -152,15 +153,15 @@ describe('PopOverMenu', () => {
   it('shows the correct element when switching between mobile and desktop', () => {
     const drawer = '.MuiDrawer-root'
     const popover = '.MuiPopover-root'
-
     cy.get(openMenu).click()
     cy.get(popoverMenu).should('be.visible')
-    cy.get(drawer).should('be.visible')
-    cy.get(popover).should('not.exist')
 
-    cy.viewport('macbook-16')
-    cy.get(popoverMenu).should('be.visible')
-    cy.get(popover).should('be.visible')
-    cy.get(drawer).should('not.exist')
+    if (isMobile()) {
+      cy.get(drawer).should('be.visible')
+      cy.get(popover).should('not.exist')
+    } else {
+      cy.get(popover).should('be.visible')
+      cy.get(drawer).should('not.exist')
+    }
   })
 })
