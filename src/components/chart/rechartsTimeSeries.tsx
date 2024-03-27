@@ -1,11 +1,6 @@
 import './rechartsTimeSeries.css'
 
 import Crop32Icon from '@mui/icons-material/Crop169'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
-import FormControl from '@mui/material/FormControl'
-import IconButton from '@mui/material/IconButton'
-import Menu from '@mui/material/Menu'
-import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/system/Box'
 import { Fragment, useEffect, useState } from 'react'
@@ -25,71 +20,32 @@ import {
   YAxis,
 } from 'recharts'
 
-import { calculateTimeDiffInDays, formatTimestampLabel } from '../helper'
-
-export interface TimeSeriesData {
-  timestamp: number
-  [key: string]: number
-}
-
-export interface Margin {
-  top?: number
-  right?: number
-  bottom?: number
-  left?: number
-}
-
-export interface RechartsTimeSeriesProps {
-  /** Data to be displayed in the time series chart. The first field is used as the x-axis field. We currently support formatting epoch timestamps and ISO date strings. Other data types will be displayed as given. */
-  timeSeries: TimeSeriesData[]
-  /** An array containing a predefined set of Hex color codes or string colors (e.g. 'blue'). The colors will be applied to the keys of the data object in order. */
-  chartColors: string[]
-  /** Array of y-axis reference lines. */
-  referenceLineYAxis?: number[]
-  /** Array of y-axis reference line colors. Hex color codes and string colors are both supported for defining colors. If not provided, all lines default to grey. Skip providing a custom color for a certain y-axis by providing an empty string. */
-  referenceLineColor?: string[]
-  /** Array of y-axis reference line labels. Skip providing a custom label for a certain y-axis by providing an empty string. */
-  referenceLineLabel?: string[]
-  /** Array of y-axis reference line stroke widths. If not provided, all lines default to 1. Skip providing a custom stroke width for a certain y-axis by providing an empty string. */
-  referenceLineStrokeWidth?: number[]
-  /** Title of the time series chart. */
-  title?: string
-  /** Description of the time series chart. */
-  description?: string
-  // TODO: define onClick type - task <5991977827>
-  /** Callback function to be called when a point on the graph is clicked. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onClick?: (...args: any[]) => any
-  /** Width of the y-axis labels in pixels. */
-  yAxisLabelWidth?: number
-  /** Minimum width of the chart in pixels. */
-  minChartWidth?: number
-  /** Maximum width of the chart in pixels. */
-  maxHeight?: number
-  /** Updated data will be added to the original time series data. */
-  updatedData?: { timeSeries: TimeSeriesData[] }[]
-  /** Aspect ratio of the chart. */
-  aspectRatio?: number
-  /** Width of the chart in pixels. */
-  width?: number
-  /** Chart type toggle will be hidden if the value is true. */
-  disableChartTypeToggle?: boolean
-  /** Define the default chart type: 'line', 'bar', or 'area'. */
-  defaultChartType?: TimeSeriesType
-  /** Pass a function to format y-axis label. Make sure to use tooltipFormatter and yAxisTickFormatter together so that the numbers are uniform. */
-  yAxisTickFormatter?: (value: number) => string
-  /** Pass a function to format tooltip content. */
-  tooltipFormatter?: (value: number, name: string) => [string, string]
-  /** Margin of chart container in pixel. For example, adding left margin could show larger numbers properly. */
-  chartContainerMargin?: Margin
-}
-
-export type TimeSeriesType = 'line' | 'bar' | 'area'
+import {
+  calculateTimeDiffInDays,
+  defaultTimeSeriesProps,
+  formatTimestampLabel,
+} from '../helper'
+import type { ChartSpacing, TimeSeriesFormat, TimeSeriesType } from '../types'
+import TimeSeriesWrapper from './timeSeriesWrapper'
 
 const TimeSeriesComponents = {
   line: LineChart,
   bar: BarChart,
   area: AreaChart,
+}
+
+export interface RechartsTimeSeriesFormat extends TimeSeriesFormat {
+  /** An array containing a predefined set of Hex color codes or string colors (e.g. 'blue'). The colors will be applied to the keys of the data object in order. */
+  chartColors: string[]
+  /** Callback function to be called when a data point on the graph is clicked. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onClick?: (...args: any[]) => any
+  /** Width of the y-axis labels in pixels. */
+  yAxisLabelWidth?: number
+  /** Pass a function to format tooltip content. */
+  tooltipFormatter?: (value: number, name: string) => [string, string]
+  /** Margin of chart container in pixel. For example, adding left margin could show larger numbers properly. */
+  chartContainerMargin?: ChartSpacing
 }
 
 //All of lines should be shown initially
@@ -107,11 +63,10 @@ function areAllDatasetsVisible(datasetsVisibility: { [key: string]: boolean }) {
   return Object.values(datasetsVisibility).every((value) => value === true)
 }
 
-function RechartsTimeSeries(props: RechartsTimeSeriesProps) {
+function RechartsTimeSeries(props: RechartsTimeSeriesFormat) {
   const [timeSeriesType, setTimeSeriesType] = useState<TimeSeriesType>(
     props.defaultChartType || 'line'
   )
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [timeSeries, setTimeSeries] = useState<object[]>(props.timeSeries)
 
   const dataFields = timeSeries.length > 0 ? Object.keys(timeSeries[0]) : []
@@ -133,15 +88,6 @@ function RechartsTimeSeries(props: RechartsTimeSeriesProps) {
   }, [props.timeSeries, props.updatedData])
 
   const TimeSeriesParentComponent = TimeSeriesComponents[timeSeriesType]
-
-  function handleChartTypeToggle(event?: React.MouseEvent<HTMLElement>) {
-    anchorEl ? setAnchorEl(null) : event && setAnchorEl(event.currentTarget)
-  }
-
-  function handleChartTypeClick(chartType: TimeSeriesType) {
-    setTimeSeriesType(chartType)
-    handleChartTypeToggle()
-  }
 
   function handleLegendClick(clickedDataKey: string) {
     const isTheOnlyVisibleDataset =
@@ -273,161 +219,92 @@ function RechartsTimeSeries(props: RechartsTimeSeriesProps) {
     )
   }
 
-  if (timeSeries.length === 0) {
-    return <Typography variant="body2">No data available</Typography>
-  } else {
+  let timeSeriesDuration: number
+  if (props.timeSeries.length > 0) {
     const lastTimeSeriesItem = props.timeSeries[props.timeSeries.length - 1]
     const firstTimeSeriesItem = props.timeSeries[0]
 
-    const timeSeriesDuration = calculateTimeDiffInDays(
+    timeSeriesDuration = calculateTimeDiffInDays(
       firstTimeSeriesItem[xAxisField],
       lastTimeSeriesItem[xAxisField]
     )
+  }
 
-    return (
-      <Box
-        className="rustic-recharts-time-series"
+  // eslint-disable-next-line no-console
+  console.log(timeSeriesType)
+  return (
+    <TimeSeriesWrapper
+      timeSeriesType={timeSeriesType}
+      setTimeSeriesType={setTimeSeriesType}
+      timeSeries={props.timeSeries}
+      disableChartTypeToggle={props.disableChartTypeToggle}
+      title={props.title}
+      description={props.description}
+    >
+      <ResponsiveContainer
+        aspect={props.aspectRatio}
+        width={props.width}
+        maxHeight={props.maxHeight}
+        minWidth={props.minChartWidth}
         data-cy={`${timeSeriesType}-chart`}
       >
-        {!props.disableChartTypeToggle && (
-          <FormControl className="rustic-recharts-time-series-chart-toggle">
-            <IconButton
-              aria-label="chart options"
-              aria-expanded={Boolean(anchorEl)}
-              aria-haspopup="true"
-              onClick={handleChartTypeToggle}
-            >
-              <MoreVertIcon sx={{ color: 'primary.main' }} />
-            </IconButton>
-            <Menu
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'right',
-              }}
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={(e: React.MouseEvent<HTMLElement>) =>
-                handleChartTypeToggle(e)
-              }
-            >
-              <Typography className="rustic-recharts-time-series-chart-toggle-title">
-                Chart Types:
-              </Typography>
-              {Object.keys(TimeSeriesComponents).map((chartType) => {
-                return (
-                  <MenuItem
-                    value={chartType}
-                    key={chartType}
-                    selected={chartType === timeSeriesType}
-                    onClick={() =>
-                      handleChartTypeClick(chartType as TimeSeriesType)
-                    }
-                  >
-                    {chartType.charAt(0).toUpperCase() + chartType.slice(1)}{' '}
-                    Chart
-                  </MenuItem>
-                )
-              })}
-            </Menu>
-          </FormControl>
-        )}
-        <Box>
-          {props.title && (
-            <Typography
-              variant="subtitle2"
-              className="rustic-recharts-time-series-title"
-              data-cy="time-series-title"
-            >
-              {props.title}
-            </Typography>
+        <TimeSeriesParentComponent
+          data={timeSeries}
+          margin={props.chartContainerMargin}
+        >
+          <XAxis
+            dataKey={xAxisField}
+            tickFormatter={(value) =>
+              formatTimestampLabel(value, timeSeriesDuration)
+            }
+          />
+          <YAxis
+            domain={['auto', 'auto']}
+            width={props.yAxisLabelWidth}
+            tickFormatter={props.yAxisTickFormatter}
+          />
+          <Tooltip
+            labelFormatter={(label: number) => [
+              formatTimestampLabel(label, timeSeriesDuration),
+            ]}
+            formatter={props.tooltipFormatter}
+          />
+          <Legend content={renderLegend} />
+
+          {yAxisFields.map((key, index) =>
+            datasetsVisibility[key] ? renderChartComponent(key, index) : null
           )}
-
-          {props.description && (
-            <Typography
-              variant="caption"
-              className="rustic-recharts-time-series-description"
-            >
-              {props.description}
-            </Typography>
-          )}
-
-          <ResponsiveContainer
-            aspect={props.aspectRatio}
-            width={props.width}
-            maxHeight={props.maxHeight}
-            minWidth={props.minChartWidth}
-          >
-            <TimeSeriesParentComponent
-              data={timeSeries}
-              margin={props.chartContainerMargin}
-            >
-              <XAxis
-                dataKey={xAxisField}
-                tickFormatter={(value) =>
-                  formatTimestampLabel(value, timeSeriesDuration)
-                }
-              />
-              <YAxis
-                domain={['auto', 'auto']}
-                width={props.yAxisLabelWidth}
-                tickFormatter={props.yAxisTickFormatter}
-              />
-              <Tooltip
-                labelFormatter={(label: number) => [
-                  formatTimestampLabel(label, timeSeriesDuration),
-                ]}
-                formatter={props.tooltipFormatter}
-              />
-              <Legend content={renderLegend} />
-
-              {yAxisFields.map((key, index) =>
-                datasetsVisibility[key]
-                  ? renderChartComponent(key, index)
-                  : null
-              )}
-              {props.referenceLineYAxis &&
-                props.referenceLineYAxis.map((referenceLine, index) => {
-                  return (
-                    <ReferenceLine
-                      key={index}
-                      y={referenceLine}
-                      label={
-                        props.referenceLineLabel &&
-                        props.referenceLineLabel[index]
-                      }
-                      stroke={
-                        props.referenceLineColor &&
-                        props.referenceLineColor[index]
-                      }
-                      strokeDasharray="3 3"
-                      ifOverflow="extendDomain"
-                      strokeWidth={
-                        props.referenceLineStrokeWidth &&
-                        props.referenceLineStrokeWidth[index]
-                      }
-                      isFront
-                    />
-                  )
-                })}
-            </TimeSeriesParentComponent>
-          </ResponsiveContainer>
-        </Box>
-      </Box>
-    )
-  }
+          {props.referenceLineYAxis &&
+            props.referenceLineYAxis.map((referenceLine, index) => {
+              return (
+                <ReferenceLine
+                  key={index}
+                  y={referenceLine}
+                  label={
+                    props.referenceLineLabel && props.referenceLineLabel[index]
+                  }
+                  stroke={
+                    props.referenceLineColor && props.referenceLineColor[index]
+                  }
+                  strokeDasharray="3 3"
+                  ifOverflow="extendDomain"
+                  strokeWidth={
+                    props.referenceLineStrokeWidth &&
+                    props.referenceLineStrokeWidth[index]
+                  }
+                  isFront
+                />
+              )
+            })}
+        </TimeSeriesParentComponent>
+      </ResponsiveContainer>
+    </TimeSeriesWrapper>
+  )
 }
 
 RechartsTimeSeries.defaultProps = {
-  minChartWidth: 200,
-  maxHeight: 600,
+  ...defaultTimeSeriesProps,
   yAxisLabelWidth: 30,
-  // eslint-disable-next-line no-magic-numbers
-  aspectRatio: 16 / 9,
-  disableChartTypeToggle: false,
 }
 
 export default RechartsTimeSeries
