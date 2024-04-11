@@ -13,7 +13,7 @@ import { v4 as getUUID } from 'uuid'
 
 import type { Message, WebSocketClient } from '../types'
 
-export interface TextInputProps {
+export interface TextInput {
   ws: WebSocketClient
   /** Id of the current user. */
   sender: string
@@ -33,7 +33,7 @@ export interface TextInputProps {
   enableSpeechToText?: boolean
 }
 
-export default function TextInput(props: TextInputProps) {
+export default function TextInput(props: TextInput) {
   const [messageText, setMessageText] = useState<string>('')
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [isRecording, setIsRecording] = useState(false)
