@@ -1,3 +1,4 @@
+import type { Message } from '../types'
 import TextInput from './textInput'
 
 export default {
@@ -26,6 +27,9 @@ export const Default = {
     sender: 'You',
     conversationId: '1',
     placeholder: 'Type your message',
+    ws: {
+      send: (message: Message) => alert(`Message sent: ${message.data.text}`),
+    },
   },
 }
 

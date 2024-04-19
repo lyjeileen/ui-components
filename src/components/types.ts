@@ -1,6 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type MessageData = { [key: string]: any }
-
 export interface Message {
   id: string
   timestamp: string
@@ -14,58 +13,47 @@ export interface Message {
   taggedParticipants?: string[]
   topicId?: string
 }
-
 export interface ThreadableMessage extends Message {
   lastThreadMessage?: Message
   threadMessagesData?: MessageData[]
 }
-
 export interface ComponentMap {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: React.ComponentType<any>
 }
-
 export interface WebSocketClient {
   send: (message: Message) => void
   close: () => void
   reconnect: () => void
 }
-
 export enum ParticipantRole {
   Owner = 'owner',
   Member = 'member',
 }
-
 export enum ParticipantType {
   Human = 'human',
   Agent = 'agent',
 }
-
 export interface Participant {
   id: string
   displayName: string
   participantRole: ParticipantRole
   participantType: ParticipantType
 }
-
 export interface DataFormat {
   /** Optional title. */
   title?: string
   /** Optional description. */
   description?: string
 }
-
 export interface Updates<T extends DataFormat> {
   /** @ignore */
   updatedData?: T[]
 }
-
 export interface TextFormat extends DataFormat {
   text: string
 }
-
 export type TextData = TextFormat & Updates<TextFormat>
-
 export interface CodeFormat extends DataFormat {
   /** Code that will be displayed. */
   code: string
@@ -73,9 +61,7 @@ export interface CodeFormat extends DataFormat {
    * If an unsupported language is used, the code snippet is still viewable. */
   language: string
 }
-
 export type CodeData = CodeFormat & Updates<CodeFormat>
-
 export interface CalendarEvent {
   /** Start date and time of the event. */
   start: string
@@ -90,13 +76,10 @@ export interface CalendarEvent {
   /** Indicator if the event lasts the entire day. */
   isAllDay?: boolean
 }
-
 export interface CalendarFormat extends DataFormat {
   events: CalendarEvent[]
 }
-
 export type CalendarData = CalendarFormat & Updates<CalendarFormat>
-
 export interface LocationFormat extends DataFormat {
   /** Longitude in decimal degrees. */
   longitude: number
@@ -107,7 +90,6 @@ export interface LocationFormat extends DataFormat {
   /** Optional description for the location. */
   description?: string
 }
-
 export interface ImageFormat extends DataFormat {
   /** Base64 encoded image or path to an image file. */
   src: string
@@ -118,14 +100,12 @@ export interface ImageFormat extends DataFormat {
   /** Alternative text for the image used for assistive technology. */
   alt?: string
 }
-
 export interface TableHeader {
   /** Field in table data for this header. */
   dataKey: string
   /** Optional label for this header. */
   label?: string
 }
-
 export interface TableFormat extends DataFormat {
   /** Data to be displayed in the table. */
   data: Array<Record<string, string | number>>
@@ -133,9 +113,7 @@ export interface TableFormat extends DataFormat {
    * This can also be used to limit which columns are shown. */
   headers?: TableHeader[]
 }
-
 export type TableData = TableFormat & Updates<TableFormat>
-
 export interface MediaFormat extends DataFormat {
   /** URL of the media file to be played. */
   src: string
@@ -144,7 +122,6 @@ export interface MediaFormat extends DataFormat {
   /** Transcript of the media content. */
   transcript?: string
 }
-
 export interface AudioFormat extends MediaFormat {}
 
 export interface VideoFormat extends MediaFormat {
@@ -152,8 +129,7 @@ export interface VideoFormat extends MediaFormat {
   poster?: string
 }
 
-export interface TextInputProps {
-  ws: WebSocketClient
+export interface BaseInputProps {
   /** Id of the current user. */
   sender: string
   /** Id of the current conversation. */
@@ -168,6 +144,12 @@ export interface TextInputProps {
   maxRows?: number
   /** Boolean that dictates whether `TextInput` takes up 100% width of the parent container. */
   fullWidth?: boolean
+  send: (message: Message) => void
+  isSendEnabled?: boolean
+}
+
+export interface TextInputProps extends Omit<BaseInputProps, 'send'> {
+  ws: WebSocketClient
 }
 
 export interface InputProps extends TextInputProps {
