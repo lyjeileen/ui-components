@@ -1,4 +1,4 @@
-import './textInput.css'
+import './baseInput.css'
 
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -11,11 +11,12 @@ import { useRef, useState } from 'react'
 import React from 'react'
 import { v4 as getUUID } from 'uuid'
 
-import type { Message, TextInputProps } from '../types'
+import type { BaseInputProps, Message } from '../../types'
 
-export default function TextInput(props: TextInputProps) {
+export default function BaseInput(
+  props: React.PropsWithChildren<BaseInputProps>
+) {
   const [messageText, setMessageText] = useState<string>('')
-  const [errorMessage, setErrorMessage] = useState<string>('')
   const [isRecording, setIsRecording] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
   const [isEndingRecording, setIsEndingRecording] = useState(false)
@@ -23,6 +24,10 @@ export default function TextInput(props: TextInputProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const isEmptyMessage = !messageText.trim().length
+  const isSendDisabled = props.isSendEnabled
+    ? !props.isSendEnabled
+    : isEmptyMessage
+
   const speechToTextTooltipTitle = `${isRecording ? 'Stop' : 'Start'} speech to text`
   const speechToTextInactiveColor = isFocused ? 'primary.main' : 'primary.light'
   const speechToTextIconColor = isRecording
@@ -49,29 +54,6 @@ export default function TextInput(props: TextInputProps) {
       "The language you're speaking isn't supported. Try speaking in a different language or check your device settings.",
   }
 
-  const speechToTextButtonAdornment = {
-    endAdornment: (
-      <InputAdornment position="end">
-        {isEndingRecording ? (
-          <CircularProgress size={24} data-cy="spinner" />
-        ) : (
-          <Tooltip title={speechToTextTooltipTitle}>
-            <IconButton
-              data-cy="record-button"
-              onClick={handleToggleSpeechToText}
-              size="small"
-              sx={{ color: speechToTextIconColor }}
-            >
-              <span className="material-symbols-rounded">
-                {speechToTextIconName}
-              </span>
-            </IconButton>
-          </Tooltip>
-        )}
-      </InputAdornment>
-    ),
-  }
-
   function handleToggleSpeechToText() {
     const microphone = new window.webkitSpeechRecognition()
     const recognitionLang = navigator.language
@@ -84,7 +66,7 @@ export default function TextInput(props: TextInputProps) {
       setIsRecording(false)
     } else {
       microphone.start()
-      setErrorMessage('')
+      props.setErrorMessages && props.setErrorMessages([])
       setIsRecording(true)
     }
 
@@ -108,7 +90,7 @@ export default function TextInput(props: TextInputProps) {
     microphone.onerror = (event: SpeechRecognitionErrorEvent) => {
       const errorDescription = speechRecognitionErrors[event.error]
 
-      setErrorMessage(errorDescription)
+      props.setErrorMessages && props.setErrorMessages([errorDescription])
       setIsRecording(false)
     }
 
@@ -118,85 +100,109 @@ export default function TextInput(props: TextInputProps) {
     }
   }
 
+  const speechToTextButtonAdornment = {
+    endAdornment: (
+      <InputAdornment position="end">
+        {isEndingRecording ? (
+          <CircularProgress size={24} data-cy="spinner" />
+        ) : (
+          <Tooltip title={speechToTextTooltipTitle}>
+            <IconButton
+              data-cy="record-button"
+              onClick={handleToggleSpeechToText}
+              size="small"
+              sx={{ color: speechToTextIconColor }}
+            >
+              <span className="material-symbols-rounded">
+                {speechToTextIconName}
+              </span>
+            </IconButton>
+          </Tooltip>
+        )}
+      </InputAdornment>
+    ),
+  }
+
   function handleSendMessage(): void {
-    if (!isEmptyMessage) {
-      const currentTime = new Date().toISOString()
-
-      const formattedMessage: Message = {
-        id: getUUID(),
-        timestamp: currentTime,
-        sender: props.sender,
-        conversationId: props.conversationId,
-        format: 'text',
-        data: { text: messageText },
-      }
-
-      props.ws.send(formattedMessage)
-      setMessageText('')
+    const currentTime = new Date().toISOString()
+    const formattedMessage: Message = {
+      id: getUUID(),
+      timestamp: currentTime,
+      sender: props.sender,
+      conversationId: props.conversationId,
+      format: 'text',
+      data: { text: messageText },
     }
+
+    props.send(formattedMessage)
+    setMessageText('')
+    props.setErrorMessages && props.setErrorMessages([])
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSendMessage()
+      !isSendDisabled && handleSendMessage()
     }
   }
 
   function handleOnChange(e: React.ChangeEvent<HTMLInputElement>): void {
-    setErrorMessage('')
+    props.setErrorMessages && props.setErrorMessages([])
     setMessageText(e.target.value)
   }
 
   return (
-    <Box className="rustic-text-input-container">
-      <Box className="rustic-text-input-and-error-container">
-        {errorMessage.length > 0 && (
+    <Box className="rustic-base-input">
+      {props.errorMessages &&
+        props.errorMessages.map((errorMessage, index) => (
           <Typography
             variant="caption"
             color="error"
             className="rustic-error-message"
+            key={index}
+            data-cy="error-message"
           >
             {errorMessage}
           </Typography>
-        )}
-        <TextField
-          data-cy="text-input"
-          className="rustic-text-input"
-          variant="outlined"
-          value={messageText}
-          label={props.label}
-          placeholder={props.placeholder}
-          maxRows={props.maxRows}
-          multiline={props.multiline}
-          fullWidth={props.fullWidth}
-          onKeyDown={handleKeyDown}
-          onChange={handleOnChange}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          inputRef={inputRef}
-          color="secondary"
-          size="small"
-          error={!!errorMessage}
-          InputProps={
-            props.enableSpeechToText ? speechToTextButtonAdornment : {}
-          }
-        />
+        ))}
+      <TextField
+        data-cy="text-field"
+        className="rustic-text-field"
+        variant="outlined"
+        value={messageText}
+        label={props.label}
+        placeholder={props.placeholder}
+        maxRows={props.maxRows}
+        multiline={props.multiline}
+        fullWidth={props.fullWidth}
+        onKeyDown={handleKeyDown}
+        onChange={handleOnChange}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        inputRef={inputRef}
+        color="secondary"
+        size="small"
+        error={!!props.errorMessages}
+        InputProps={props.enableSpeechToText ? speechToTextButtonAdornment : {}}
+      />
+      <Box className="rustic-input-actions">
+        {props.children}
+        <IconButton
+          data-cy="send-button"
+          aria-label="send message"
+          onClick={handleSendMessage}
+          disabled={isSendDisabled}
+          color="primary"
+          className="rustic-send-button"
+        >
+          <span className="material-symbols-rounded">send</span>
+        </IconButton>
       </Box>
-      <IconButton
-        data-cy="send-button"
-        aria-label="send message"
-        onClick={handleSendMessage}
-        disabled={isEmptyMessage}
-        color="primary"
-      >
-        <span className="material-symbols-rounded">send</span>
-      </IconButton>
     </Box>
   )
 }
 
-TextInput.defaultProps = {
+BaseInput.defaultProps = {
   multiline: true,
   fullWidth: true,
   maxRows: 6,
