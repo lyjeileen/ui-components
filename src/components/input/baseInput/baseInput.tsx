@@ -13,6 +13,19 @@ import { v4 as getUUID } from 'uuid'
 
 import type { BaseInputProps, Message } from '../../types'
 
+function ErrorMessage(props: { errorMessage: string }) {
+  return (
+    <Typography
+      variant="caption"
+      color="error"
+      className="rustic-error-message"
+      data-cy="error-message"
+    >
+      {props.errorMessage}
+    </Typography>
+  )
+}
+
 export default function BaseInput(
   props: React.PropsWithChildren<BaseInputProps>
 ) {
@@ -20,7 +33,7 @@ export default function BaseInput(
   const [isRecording, setIsRecording] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
   const [isEndingRecording, setIsEndingRecording] = useState(false)
-
+  const [speechToTextError, setSpeechToTextError] = useState<string>('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   const isEmptyMessage = !messageText.trim().length
@@ -66,7 +79,7 @@ export default function BaseInput(
       setIsRecording(false)
     } else {
       microphone.start()
-      props.setErrorMessages && props.setErrorMessages([])
+      setSpeechToTextError('')
       setIsRecording(true)
     }
 
@@ -90,7 +103,7 @@ export default function BaseInput(
     microphone.onerror = (event: SpeechRecognitionErrorEvent) => {
       const errorDescription = speechRecognitionErrors[event.error]
 
-      props.setErrorMessages && props.setErrorMessages([errorDescription])
+      setSpeechToTextError(errorDescription)
       setIsRecording(false)
     }
 
@@ -136,7 +149,7 @@ export default function BaseInput(
 
     props.send(formattedMessage)
     setMessageText('')
-    props.setErrorMessages && props.setErrorMessages([])
+    props.setMultimodalErrorMessages && props.setMultimodalErrorMessages([])
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
@@ -147,44 +160,43 @@ export default function BaseInput(
   }
 
   function handleOnChange(e: React.ChangeEvent<HTMLInputElement>): void {
-    props.setErrorMessages && props.setErrorMessages([])
+    setSpeechToTextError('')
     setMessageText(e.target.value)
   }
 
   return (
     <Box className="rustic-base-input">
-      {props.errorMessages &&
-        props.errorMessages.map((errorMessage, index) => (
-          <Typography
-            variant="caption"
-            color="error"
-            className="rustic-error-message"
-            key={index}
-            data-cy="error-message"
-          >
-            {errorMessage}
-          </Typography>
-        ))}
-      <TextField
-        data-cy="text-field"
-        className="rustic-text-field"
-        variant="outlined"
-        value={messageText}
-        label={props.label}
-        placeholder={props.placeholder}
-        maxRows={props.maxRows}
-        multiline={props.multiline}
-        fullWidth={props.fullWidth}
-        onKeyDown={handleKeyDown}
-        onChange={handleOnChange}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        inputRef={inputRef}
-        color="secondary"
-        size="small"
-        error={!!props.errorMessages}
-        InputProps={props.enableSpeechToText ? speechToTextButtonAdornment : {}}
-      />
+      <Box className="rustic-error-and-text-field-container">
+        <Box>
+          <ErrorMessage errorMessage={speechToTextError} />
+          {props.multimodalErrorMessages &&
+            props.multimodalErrorMessages.map((errorMessage, index) => (
+              <ErrorMessage errorMessage={errorMessage} key={index} />
+            ))}
+        </Box>
+        <TextField
+          data-cy="text-field"
+          className="rustic-text-field"
+          variant="outlined"
+          value={messageText}
+          label={props.label}
+          placeholder={props.placeholder}
+          maxRows={props.maxRows}
+          multiline={props.multiline}
+          fullWidth={props.fullWidth}
+          onKeyDown={handleKeyDown}
+          onChange={handleOnChange}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          inputRef={inputRef}
+          color="secondary"
+          size="small"
+          error={!!speechToTextError}
+          InputProps={
+            props.enableSpeechToText ? speechToTextButtonAdornment : {}
+          }
+        />
+      </Box>
       <Box className="rustic-input-actions">
         {props.children}
         <IconButton
