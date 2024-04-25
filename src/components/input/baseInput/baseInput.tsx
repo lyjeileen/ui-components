@@ -9,7 +9,6 @@ import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { useRef, useState } from 'react'
 import React from 'react'
-import { v4 as getUUID } from 'uuid'
 
 import type { BaseInputProps, Message } from '../../types'
 
@@ -37,9 +36,7 @@ export default function BaseInput(
   const inputRef = useRef<HTMLInputElement>(null)
 
   const isEmptyMessage = !messageText.trim().length
-  const isSendDisabled = props.isSendEnabled
-    ? !props.isSendEnabled
-    : isEmptyMessage
+  const isSendDisabled = isEmptyMessage && !props.isSendEnabled
 
   const speechToTextTooltipTitle = `${isRecording ? 'Stop' : 'Start'} speech to text`
   const speechToTextInactiveColor = isFocused ? 'primary.main' : 'primary.light'
@@ -139,7 +136,7 @@ export default function BaseInput(
   function handleSendMessage(): void {
     const currentTime = new Date().toISOString()
     const formattedMessage: Message = {
-      id: getUUID(),
+      id: '',
       timestamp: currentTime,
       sender: props.sender,
       conversationId: props.conversationId,
