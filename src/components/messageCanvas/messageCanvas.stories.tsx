@@ -1,8 +1,8 @@
 import Typography from '@mui/material/Typography'
+import useTheme from '@mui/system/useTheme'
 import React from 'react'
 
 import { ElementRenderer, type ThreadableMessage } from '..'
-import Icon from '../icon/icon'
 import Text from '../text/text'
 import CopyText from './actions/copy/copyText'
 import MessageCanvas from './messageCanvas'
@@ -69,10 +69,27 @@ const profileString = `(message: ThreadableMessage) => {
   }`
 
 function getProfileIcon(message: ThreadableMessage) {
-  if (message.sender.name?.includes('agent')) {
-    return <Icon name="smart_toy" />
+  const theme = useTheme()
+  const sharedAvatarStyle = {
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: '50%',
+    color: theme.palette.primary.main,
+    backgroundColor: theme.palette.divider,
+    padding: '3px',
+    fontSize: '16px',
+  }
+  if (message.sender.name?.includes('Agent')) {
+    return (
+      <span className="material-symbols-rounded" style={sharedAvatarStyle}>
+        smart_toy
+      </span>
+    )
   } else {
-    return <Icon name="account_circle" />
+    return (
+      <span className="material-symbols-rounded" style={sharedAvatarStyle}>
+        person
+      </span>
+    )
   }
 }
 

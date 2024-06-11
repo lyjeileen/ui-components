@@ -1,4 +1,5 @@
 import Typography from '@mui/material/Typography'
+import useTheme from '@mui/system/useTheme'
 import type { Meta } from '@storybook/react'
 import type { StoryFn } from '@storybook/react'
 import React from 'react'
@@ -21,7 +22,6 @@ import {
   YoutubeVideo,
 } from '..'
 import CodeSnippet from '../codeSnippet/codeSnippet'
-import Icon from '../icon/icon'
 import CopyText from '../messageCanvas/actions/copy/copyText'
 import MessageSpace from './messageSpace'
 
@@ -46,10 +46,27 @@ const meta: Meta<React.ComponentProps<typeof MessageSpace>> = {
 export default meta
 
 function getProfileIcon(message: ThreadableMessage) {
-  if (message.sender.name?.includes('agent')) {
-    return <Icon name="smart_toy" />
+  const theme = useTheme()
+  const sharedAvatarStyle = {
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: '50%',
+    color: theme.palette.primary.main,
+    backgroundColor: theme.palette.divider,
+    padding: '3px',
+    fontSize: '16px',
+  }
+  if (message.sender.name?.includes('Agent')) {
+    return (
+      <span className="material-symbols-rounded" style={sharedAvatarStyle}>
+        smart_toy
+      </span>
+    )
   } else {
-    return <Icon name="account_circle" />
+    return (
+      <span className="material-symbols-rounded" style={sharedAvatarStyle}>
+        person
+      </span>
+    )
   }
 }
 
