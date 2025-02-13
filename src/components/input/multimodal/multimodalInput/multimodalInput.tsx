@@ -95,23 +95,21 @@ export default function MultimodalInput(props: MultimodalInputProps) {
         isSendEnabled={hasAddedFiles}
         ref={inputRef}
       >
-        <Box className="rustic-bottom-buttons">
-          <Uploader
-            acceptedFileTypes={props.acceptedFileTypes}
-            maxFileCount={props.maxFileCount}
-            maxFileSize={props.maxFileSize}
-            uploadFileEndpoint={props.uploadFileEndpoint}
-            deleteFileEndpoint={props.deleteFileEndpoint}
-            onFileUpdate={handleFileUpdates}
-            messageId={messageId}
-            filePreviewsContainer={filePreviewsContainer}
-            errorMessagesContainer={errorMessagesContainer}
-            showFullName={props.showFullName}
-            getUploadData={props.getUploadData}
-            uploadOptions={props.uploadOptions}
-            listFiles={props.listFiles}
-          />
-        </Box>
+        <Uploader
+          acceptedFileTypes={props.acceptedFileTypes}
+          maxFileCount={props.maxFileCount}
+          maxFileSize={props.maxFileSize}
+          uploadFileEndpoint={props.uploadFileEndpoint}
+          deleteFileEndpoint={props.deleteFileEndpoint}
+          onFileUpdate={handleFileUpdates}
+          messageId={messageId}
+          filePreviewsContainer={filePreviewsContainer}
+          errorMessagesContainer={errorMessagesContainer}
+          showFullName={props.showFullName}
+          getUploadData={props.getUploadData}
+          uploadOptions={props.uploadOptions}
+          listFiles={props.listFiles}
+        />
       </BaseInput>
     </Box>
   )

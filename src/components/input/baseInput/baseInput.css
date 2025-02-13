@@ -36,11 +36,7 @@
 }
 
 .rustic-base-input .rustic-send-button {
-  margin: 10px 12px;
-}
-
-.rustic-base-input .rustic-input-actions {
-  display: flex;
+  margin-left: auto;
 }
 
 .rustic-base-input .rustic-input-adornment {

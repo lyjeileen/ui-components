@@ -257,7 +257,6 @@ function BaseInputElement(
     return brCount >= maxRows - 1
   }
 
-  // todo: border color change
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -358,33 +357,39 @@ function BaseInputElement(
             <div data-cy="text-field" ref={inputRef}>
               <RichTextContent className="rustic-text-field" />
             </div>
-            <Box sx={{ display: 'flex', padding: '8px 16px 16px' }}>
+            <div className="rustic-input-extras"></div>
+
+            <Box
+              sx={{
+                display: 'flex',
+                padding: '8px 16px 16px',
+                alignItems: 'center',
+                gap: '16px',
+              }}
+            >
+              {props.children}
               <Emoji
                 dataSource={props.emojiDataSource}
                 onEmojiClick={handleEmojiClick}
                 buttonColor={featureButtonColor}
               />
               {props.enableSpeechToText && speechToTextButtonAdornment}
+              <Tooltip title="Send">
+                <span className="rustic-send-button">
+                  <IconButton
+                    data-cy="send-button"
+                    aria-label="send message"
+                    onClick={handleSendMessage}
+                    disabled={isSendDisabled}
+                    color="secondary"
+                  >
+                    <Icon name="send" />
+                  </IconButton>
+                </span>
+              </Tooltip>
             </Box>
           </RichTextEditorProvider>
-          <div className="rustic-input-extras"></div>
         </Box>
-      </Box>
-      <Box className="rustic-input-actions">
-        {props.children}
-        <Tooltip title="Send">
-          <span className="rustic-send-button">
-            <IconButton
-              data-cy="send-button"
-              aria-label="send message"
-              onClick={handleSendMessage}
-              disabled={isSendDisabled}
-              color="secondary"
-            >
-              <Icon name="send" />
-            </IconButton>
-          </span>
-        </Tooltip>
       </Box>
     </Box>
   )
