@@ -3,17 +3,21 @@ import './baseInput.css'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
-import InputAdornment from '@mui/material/InputAdornment'
 import MenuItem from '@mui/material/MenuItem'
 import MenuList from '@mui/material/MenuList'
 import Popover from '@mui/material/Popover'
-import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
+import Placeholder from '@tiptap/extension-placeholder'
+import type { Editor } from '@tiptap/react'
+import { useEditor } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
 import { Database } from 'emoji-picker-element'
 import type { Emoji as EmojiInfo } from 'emoji-picker-element/shared'
+import { RichTextContent, RichTextEditorProvider } from 'mui-tiptap'
 import { type ForwardedRef, forwardRef, useRef, useState } from 'react'
 import React from 'react'
+import { Markdown } from 'tiptap-markdown'
 import { v4 as getUUID } from 'uuid'
 
 import { toChatRequest } from '../../helper'
@@ -77,46 +81,39 @@ function BaseInputElement(
   const featureButtonColor = isFocused ? 'primary.main' : 'primary.light'
   const speechToTextIconColor = isRecording ? 'error.main' : featureButtonColor
   const speechToTextIconName = isRecording ? 'stop_circle' : 'speech_to_text'
-
   function handleEmojiClick(
     emoji: string,
     shouldEmojiShortcodeBeReplaced: boolean = false
   ) {
-    if (inputRef.current) {
-      const { selectionStart, selectionEnd } = inputRef.current
-
-      if (
-        typeof selectionStart === 'number' &&
-        typeof selectionEnd === 'number'
-      ) {
-        const currentText = messageText || ''
-        const startText = currentText.substring(0, selectionStart)
-        const endText = currentText.substring(selectionEnd)
-        let newText
-
+    const shortcodeRegex = /:(\w*)$/
+    editor
+      ?.chain()
+      .focus()
+      .command(({ tr, state }) => {
+        const { selection } = state
+        const { $from } = selection
         if (shouldEmojiShortcodeBeReplaced) {
-          newText = startText.replace(/:(\w+)$/, emoji) + endText
+          // Get the text before the cursor
+          const textBeforeCursor = $from.nodeBefore?.text || ''
+          const match = textBeforeCursor.match(shortcodeRegex)
+
+          if (match) {
+            const start = $from.pos - match[0].length
+            const end = $from.pos
+
+            // Replace the matched shortcode with the emoji
+            tr.insertText(emoji, start, end)
+          }
         } else {
-          newText = startText + emoji + endText
+          tr.insertText(emoji)
         }
-
-        setMessageText(newText)
-
-        const newPosition = shouldEmojiShortcodeBeReplaced
-          ? startText.replace(/:(\w+)$/, emoji).length
-          : selectionStart + emoji.length
-
-        // focus doesn't work without setTimeout
-        setTimeout(() => {
-          inputRef.current?.focus()
-          inputRef.current?.setSelectionRange(newPosition, newPosition)
-        }, 0)
-      }
-    }
+        //command function needs to return a boolean
+        return true
+      })
+      .run()
 
     setIsEmojiMenuShown(false)
   }
-
   function searchEmojis(query: string) {
     database
       .getEmojiBySearchQuery(query)
@@ -217,20 +214,10 @@ function BaseInputElement(
     setSpeechToTextError('')
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      if (!isSendDisabled) {
-        handleSendMessage()
-      }
-    }
-  }
-
-  function handleOnChange(e: React.ChangeEvent<HTMLInputElement>): void {
+  function handleOnChange({ editor }: { editor: Editor }): void {
     setSpeechToTextError('')
-    const newText = e.target.value
+    const newText = editor.storage.markdown.getMarkdown()
     setMessageText(newText)
-
     // expression to match ':text:' format
     const closedShortcode = newText.match(/:(\w{2,}):/g)
     // expression to match ':something' format
@@ -238,7 +225,6 @@ function BaseInputElement(
 
     if (closedShortcode) {
       const shortcode = closedShortcode[0].replace(/:/g, '')
-
       database
         .getEmojiByShortcode(shortcode)
         .then((emoji) => {
@@ -247,6 +233,7 @@ function BaseInputElement(
               closedShortcode[0],
               emoji.unicode
             )
+            editor.commands.setContent(replacedText)
             setMessageText(replacedText)
           } else {
             setMessageText(newText)
@@ -264,9 +251,60 @@ function BaseInputElement(
     }
   }
 
+  function preventNewLine(editor: Editor, maxRows: number) {
+    const content = editor.getHTML()
+    const brCount = (content?.match(/<br\s*\/?>/g) || []).length
+    return brCount >= maxRows - 1
+  }
+
+  // todo: border color change
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Markdown,
+      Placeholder.configure({
+        placeholder: props.placeholder,
+      }),
+    ],
+    onUpdate: handleOnChange,
+    onFocus: () => {
+      setIsFocused(true)
+    },
+    onBlur: () => {
+      setIsFocused(false)
+    },
+    editorProps: {
+      handleKeyDown(view, event) {
+        // Return true can prevent adding <br> to the input
+        if (event.key === 'Enter') {
+          if (event.shiftKey) {
+            if (props.multiline) {
+              if (props.maxRows && editor) {
+                preventNewLine(editor, props.maxRows)
+              }
+            } else {
+              return true
+            }
+          } else {
+            if (isEmojiMenuShown && emojiSearchResults.length > 0) {
+              // Select the first emoji
+              const firstEmoji = emojiSearchResults[0]
+              if ('unicode' in firstEmoji) {
+                handleEmojiClick(firstEmoji.unicode, true)
+              }
+            } else if (!isSendDisabled) {
+              handleSendMessage()
+            }
+            return true
+          }
+        }
+      },
+    },
+  })
+
   return (
     <Box className="rustic-base-input" ref={ref} data-cy="base-input">
-      <Box className="rustic-error-and-input-container">
+      <Box className={props.fullWidth ? 'ds-full-width' : ''}>
         <Box className="rustic-error-container">
           <Typography
             variant="caption"
@@ -314,48 +352,21 @@ function BaseInputElement(
               </MenuList>
             </Popover>
           )}
-
-          <TextField
-            data-cy="text-field"
-            className="rustic-text-field"
-            variant="outlined"
-            value={messageText}
-            label={props.label}
-            placeholder={props.placeholder}
-            maxRows={props.maxRows}
-            multiline={props.multiline}
-            fullWidth={props.fullWidth}
-            onKeyDown={handleKeyDown}
-            onChange={handleOnChange}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            inputRef={inputRef}
-            color="secondary"
-            size="small"
-            slotProps={{
-              input: {
-                endAdornment: (
-                  <InputAdornment
-                    position="end"
-                    className="rustic-input-adornment"
-                  >
-                    <Emoji
-                      dataSource={props.emojiDataSource}
-                      onEmojiClick={handleEmojiClick}
-                      buttonColor={featureButtonColor}
-                    />
-                    {props.enableSpeechToText && speechToTextButtonAdornment}
-                  </InputAdornment>
-                ),
-              },
-              inputLabel: {
-                className: !isFocused ? 'rustic-input-label' : '',
-                sx: {
-                  backgroundColor: 'background.paper',
-                },
-              },
-            }}
-          />
+          {/* todo: label props */}
+          <RichTextEditorProvider editor={editor}>
+            {/* to be improved. Popover menu should follow cursor */}
+            <div data-cy="text-field" ref={inputRef}>
+              <RichTextContent className="rustic-text-field" />
+            </div>
+            <Box sx={{ display: 'flex', padding: '8px 16px 16px' }}>
+              <Emoji
+                dataSource={props.emojiDataSource}
+                onEmojiClick={handleEmojiClick}
+                buttonColor={featureButtonColor}
+              />
+              {props.enableSpeechToText && speechToTextButtonAdornment}
+            </Box>
+          </RichTextEditorProvider>
           <div className="rustic-input-extras"></div>
         </Box>
       </Box>

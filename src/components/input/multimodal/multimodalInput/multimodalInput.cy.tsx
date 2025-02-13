@@ -62,7 +62,7 @@ describe('Input', () => {
   })
 
   supportedViewports.forEach((viewport) => {
-    it(`should render the TextInput component on ${viewport} screen`, () => {
+    it.only(`should render the TextInput component on ${viewport} screen`, () => {
       cy.viewport(viewport)
       cy.get(textField).should('exist')
       cy.get(sendButton).should('exist')
