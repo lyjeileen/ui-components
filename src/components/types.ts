@@ -113,6 +113,11 @@ export interface ImageFormat extends VisualizationFormat {
   height?: number
 }
 
+export interface ImageProps extends ImageFormat {
+  /** A function that can be used to get the headers for the image requests. */
+  getAuthHeaders?: GetAuthHeaders
+}
+
 export interface TableHeader {
   /** Field in table data for this header. */
   dataKey: string
