@@ -298,7 +298,14 @@ function BaseInputElement(
       data: { text: messageText },
       inReplyTo: props.lastMsg?.id,
       messageHistory: props.lastMsg?.messageHistory,
-      ...(props.threads && { threads: props.threads }),
+      ...(props.lastMsg?.id &&
+        props.includeThreads && {
+          //only sends this in the thread view. for the first message, pass root message as props.lastMsg and send props.lastMsg.id. After that, pass props.threads without props.lastMsg.id.
+          threads:
+            props.threads && props.threads.length > 0
+              ? props.threads
+              : [props.lastMsg.id],
+        }),
     }
 
     props.send(formattedMessage)

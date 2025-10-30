@@ -1,0 +1,35 @@
+.rustic-chat-container {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.rustic-main-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.rustic-thread-divider {
+  margin: 16px;
+  display: flex;
+  align-items: stretch;
+}
+
+.rustic-thread-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 400px;
+}
+
+.rustic-thread-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+}

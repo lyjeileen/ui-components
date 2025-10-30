@@ -327,6 +327,7 @@ export interface BaseInputProps {
   autoFocus?: boolean
   /** Optional array of thread IDs to associate with the message */
   threads?: string[]
+  includeThreads?: boolean
 }
 
 export interface TextInputProps

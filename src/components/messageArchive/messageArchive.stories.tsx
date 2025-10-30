@@ -1,5 +1,10 @@
+import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
+import Divider from '@mui/material/Divider'
+import IconButton from '@mui/material/IconButton'
+import { useTheme } from '@mui/material/styles'
 import Typography from '@mui/material/Typography'
+import useMediaQuery from '@mui/material/useMediaQuery'
 import type { Meta } from '@storybook/react-webpack5'
 import type { StoryFn } from '@storybook/react-webpack5'
 import React from 'react'
@@ -159,6 +164,7 @@ const tableData = [
 ]
 
 const updateIdentifier = getUUID()
+const message1Id = getUUID()
 
 const loadingTime = 1000
 export const Default = {
@@ -458,6 +464,291 @@ export const WithDisabledScroll = {
     disableAutoScroll: true,
     disableScrollButton: true,
     infoMessage: '',
+  },
+}
+
+export const ThreadView = {
+  decorators: [
+    (Story: StoryFn) => {
+      return (
+        <div style={{ height: '500px', display: 'flex', gap: '16px' }}>
+          <Story />
+        </div>
+      )
+    },
+  ],
+  render: () => {
+    const [activeThreadId, setActiveThreadId] =
+      React.useState<string>(updateIdentifier)
+    const [isThreadOpen, setIsThreadOpen] = React.useState(false)
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+
+    const threadMessagesData = {
+      [updateIdentifier]: [
+        {
+          ...humanMessageData,
+          id: getUUID(),
+          timestamp: '2024-01-02T00:03:00.000Z',
+          format: 'TextFormat',
+          data: {
+            text: 'This is a thread reply.',
+          },
+        },
+        {
+          ...agentMessageData,
+          id: getUUID(),
+          timestamp: '2024-01-02T00:04:00.000Z',
+          format: 'TextFormat',
+          data: {
+            text: 'Agent response to the previous message.',
+          },
+        },
+      ],
+      [message1Id]: [
+        {
+          ...humanMessageData,
+          id: getUUID(),
+          timestamp: '2024-01-02T00:22:00.000Z',
+          format: 'TextFormat',
+          data: {
+            text: 'This is a thread reply to the multipart message. User can start a thread from any message and continue the conversation there.',
+          },
+        },
+      ],
+    }
+
+    const handleThreadOpen = (messageId: string) => {
+      setActiveThreadId(messageId)
+      if (isMobile) {
+        setIsThreadOpen(true)
+      }
+    }
+
+    const handleThreadClose = () => {
+      setIsThreadOpen(false)
+    }
+
+    const supportedElements = {
+      TextFormat: Text,
+      MarkdownFormat: MarkedMarkdown,
+      ImageFormat: Image,
+      LocationFormat: OpenLayersMap,
+      TableFormat: Table,
+      CalendarFormat: FCCalendar,
+      FormFormat: UniformsForm,
+      PromptsFormat: Prompts,
+      CodeFormat: CodeSnippet,
+      AudioFormat: Sound,
+      VideoFormat: Video,
+      FilesWithTextFormat: Multipart,
+    }
+
+    return (
+      <>
+        <div
+          style={{
+            flex: 1,
+            display: isMobile && isThreadOpen ? 'none' : 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 0',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              marginBottom: '16px',
+            }}
+          >
+            <Typography variant="h6" component="h2">
+              Archived Chat
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              flex: 1,
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <MessageArchive
+              infoMessage="This chat has been archived."
+              disableAutoScroll={true}
+              disableScrollButton={true}
+              activeThreadId={activeThreadId}
+              threadMessages={threadMessagesData}
+              onThreadOpen={handleThreadOpen}
+              getHistoricMessages={() => {
+                return new Promise((resolve) => {
+                  setTimeout(() => {
+                    resolve([
+                      {
+                        ...agentMessageData,
+                        id: getUUID(),
+                        timestamp: '2024-01-02T00:01:00.000Z',
+                        format: 'updateMarkdownFormat',
+                        data: {
+                          text: '## Title',
+                          updateId: updateIdentifier,
+                        },
+                      },
+                      {
+                        ...agentMessageData,
+                        id: getUUID(),
+                        timestamp: '2024-01-02T00:02:01.000Z',
+                        format: 'updateMarkdownFormat',
+                        data: {
+                          text: '\nThis is a paragraph. Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+                          updateId: updateIdentifier,
+                        },
+                      },
+                      {
+                        ...agentMessageData,
+                        id: message1Id,
+                        timestamp: '2024-01-02T00:21:00.000Z',
+                        format: 'FilesWithTextFormat',
+                        data: {
+                          text: 'Here is an example of the multipart component:',
+                          files: [
+                            { name: 'imageExample.png' },
+                            { name: 'pdfExample.pdf' },
+                          ],
+                        },
+                      },
+                      {
+                        ...humanMessageData,
+                        id: getUUID(),
+                        timestamp: '2024-01-02T00:21:00.000Z',
+                        format: 'TextFormat',
+                        data: {
+                          text: 'Another message with no thread replies',
+                        },
+                      },
+                    ])
+                  }, loadingTime)
+                })
+              }}
+              supportedElements={supportedElements}
+              getProfileComponent={getProfileIconAndName}
+              getActionsComponent={(message: Message) => {
+                const copyButton = message.format === 'text' && (
+                  <CopyText message={message} />
+                )
+                if (copyButton) {
+                  return <>{copyButton}</>
+                }
+              }}
+            />
+          </Box>
+        </div>
+        {!isMobile && <Divider orientation="vertical" flexItem />}
+        <div
+          style={{
+            flex: 1,
+            display: isMobile && !isThreadOpen ? 'none' : 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 0',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              marginBottom: '16px',
+            }}
+          >
+            <Typography variant="h6" component="h2">
+              Thread
+            </Typography>
+            <IconButton
+              onClick={handleThreadClose}
+              aria-label="close thread"
+              size="small"
+              sx={{ display: isMobile ? 'block' : 'none' }}
+            >
+              <Icon name="close" />
+            </IconButton>
+          </Box>
+          <Box
+            sx={{
+              flex: 1,
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <MessageArchive
+              disableAutoScroll={true}
+              disableScrollButton={true}
+              getHistoricMessages={() => {
+                return new Promise((resolve) => {
+                  setTimeout(() => {
+                    const threadRootMessages = {
+                      [updateIdentifier]: [
+                        {
+                          ...agentMessageData,
+                          id: getUUID(),
+                          timestamp: '2024-01-02T00:01:00.000Z',
+                          format: 'updateMarkdownFormat',
+                          data: {
+                            text: '## Title',
+                            updateId: updateIdentifier,
+                          },
+                        },
+                        {
+                          ...agentMessageData,
+                          id: getUUID(),
+                          timestamp: '2024-01-02T00:02:01.000Z',
+                          format: 'updateMarkdownFormat',
+                          data: {
+                            text: '\nThis is a paragraph. Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+                            updateId: updateIdentifier,
+                          },
+                        },
+                      ],
+                      [message1Id]: [
+                        {
+                          ...agentMessageData,
+                          id: message1Id,
+                          timestamp: '2024-01-02T00:21:00.000Z',
+                          format: 'FilesWithTextFormat',
+                          data: {
+                            text: 'Here is an example of the multipart component:',
+                            files: [
+                              { name: 'imageExample.png' },
+                              { name: 'pdfExample.pdf' },
+                            ],
+                          },
+                        },
+                      ],
+                    }
+
+                    const rootMessages = activeThreadId
+                      ? threadRootMessages[activeThreadId]
+                      : []
+                    const threadReplies = activeThreadId
+                      ? threadMessagesData[activeThreadId]
+                      : []
+
+                    resolve([...rootMessages, ...threadReplies])
+                  }, loadingTime)
+                })
+              }}
+              supportedElements={supportedElements}
+              getProfileComponent={getProfileIconAndName}
+            />
+          </Box>
+        </div>
+      </>
+    )
   },
 }
 
